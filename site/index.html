@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    // Apply saved theme and design skin before first paint (?skin=alt|classic overrides and is remembered)
+    (function () { try { var r = document.documentElement, q = new URLSearchParams(location.search).get("skin");
+      var t = localStorage.getItem("odp-theme"); if (t) r.dataset.theme = t;
+      if (q) localStorage.setItem("odp-skin", q);
+      if ((q || localStorage.getItem("odp-skin")) === "alt") r.dataset.skin = "alt"; } catch (e) {} })();
+  </script>
+  <title>Sunday Drive</title>
+  <meta name="description" content="Where to go for a Sunday drive, ride or walk in Greater Victoria and Greater Vancouver: every road rated for views, trees, sights and ice-cream stops, with a trip planner." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;550;600;650;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Oswald:wght@500;600;700&family=Overpass:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Overpass+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./src/shared/theme.css" />
+  <link rel="stylesheet" href="./src/sunday/sunday.css" />
+  <link rel="stylesheet" href="./src/sunday/skin.css" />
+</head>
+<body class="sunday">
+  <header class="topbar">
+    <span class="title">Sunday Drive</span>
+    <span class="spacer"></span>
+    <button class="skin-btn" id="skin" type="button" data-skin-name="Motor Club"></button>
+    <button class="icon-btn" id="theme" type="button"></button>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <div class="eyebrow">Sunday Drive</div>
+        <h1 class="hero-title">Where should we go for a drive?</h1>
+        <p class="lede">Every road and path rated for what makes a good Sunday outing: water views, trees and parks, sights, somewhere to stop for ice cream, and roads that are slow and wide enough to enjoy. Then plan a trip by car, bike or on foot.</p>
+        <div class="controls-row region-row">
+          <div class="seg" id="regions" role="group" aria-label="Region"></div>
+        </div>
+        <div class="hero-grid">
+          <div class="card sunday-wx" id="weather"><div class="label">This Sunday</div><div class="wx-body note">Loading the forecast…</div></div>
+          <div class="grid cols-3 hero-stats" id="stats"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Every road, rated</div>
+            <h2>Plan a trip</h2>
+            <p>Roads are coloured by tier for the travel mode you pick. Click the map to set a start and add stops, or build a loop of the length you want. Hover a road to see why it scored the way it did.</p>
+          </div>
+        </div>
+        <div class="map-shell card">
+          <div class="map-body">
+            <div id="map" class="map"></div>
+            <aside class="map-side">
+              <div id="planner"></div>
+              <div class="side-block">
+                <div class="side-title">Road tiers</div>
+                <div class="tier-legend" id="tier-legend"></div>
+              </div>
+              <div class="side-block">
+                <div class="side-title">Show stops</div>
+                <div class="chips" id="stop-chips"></div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Your kind of Sunday</div>
+            <h2>What makes a good outing?</h2>
+            <p>The ratings mix these ingredients. Turn them up or down and every road, tier and route re-rates instantly. The defaults are my starting point, not a rule.</p>
+          </div>
+          <button type="button" class="pl-btn" id="reset-weights">Reset to defaults</button>
+        </div>
+        <div class="card weights" id="weights"></div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">The road tier list</div>
+            <h2 id="roads-title">The best roads</h2>
+            <p id="roads-sub"></p>
+          </div>
+        </div>
+        <div class="tiers card" id="road-tiers"></div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Ready-made outings</div>
+            <h2>Classic routes, rated</h2>
+            <p id="routes-sub">Local favourites, routed over the rated network and scored the same way as every road.</p>
+          </div>
+        </div>
+        <div class="routes" id="routes"></div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="grid cols-2 method">
+          <div class="card prose">
+            <h3>Method</h3>
+            <p><b>The network.</b> Every road, path and trail from OpenStreetMap, split at intersections and checked for who may use it in which direction: one-way streets, bike lanes, footpaths, roads closed to cars.</p>
+            <p><b>The ingredients.</b> Each stretch of road is measured against:</p>
+            <ul>
+              <li><b>Water:</b> distance to the sea, lakes and rivers.</li>
+              <li><b>Parks &amp; forest</b> and <b>farmland</b> within about 60–100 m.</li>
+              <li><b>Street trees</b> from the city tree inventories.</li>
+              <li><b>Sights:</b> viewpoints, heritage places, lighthouses, landmarks with a Wikipedia article.</li>
+              <li><b>Stops:</b> ice cream, cafés, bakeries, farm stands, picnic sites, beaches, washrooms.</li>
+              <li><b>The road itself:</b> posted speed and lanes (slower and two lanes is best), traffic signals per kilometre, gentle curves.</li>
+              <li><b>Bike lanes and paths</b>, or <b>quiet streets</b> for walking.</li>
+              <li><b>Industrial land</b> counts against.</li>
+            </ul>
+            <p><b>Tiers.</b> A road's score is the weighted mix, and tiers are relative to the region: S is the top 5% of road length, A the next 10%, then B 15%, C 20% and D the rest.</p>
+            <p><b>Routing.</b> The planner finds the quickest path where every second on a low-rated road costs extra; the Direct ↔ Scenic slider sets how much. Loops pick two high-rated stretches at the right distance and route through them.</p>
+          </div>
+          <div class="card prose">
+            <h3>Honest limitations</h3>
+            <ul>
+              <li>There is no ground truth for "a nice drive", so the scores are a transparent recipe, not a trained model. The weights are yours to change.</li>
+              <li>OpenStreetMap is only as complete as local mappers have made it. Missing speed limits fall back to the BC default of 50 km/h, and lane counts are often guessed from the road type.</li>
+              <li>Traffic isn't included: a lovely road at 3 pm on a sunny Sunday may be a queue.</li>
+              <li>Street trees come from city inventories, which cover Victoria, Esquimalt and Vancouver only, so tree-lined roads elsewhere are under-rated.</li>
+              <li>Opening hours aren't checked: phone ahead before driving out for ice cream.</li>
+            </ul>
+            <h3 style="margin-top:16px">Data sources</h3>
+            <ul class="sources">
+              <li>Roads, paths, parks, water, stops: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL), via the Overpass API</li>
+              <li>Landmarks and heritage designations: <a href="https://www.wikidata.org/">Wikidata</a> (CC0)</li>
+              <li>Street trees: City of Vancouver, City of Victoria and Township of Esquimalt open data</li>
+              <li>Weather: <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0)</li>
+              <li>Basemap © <a href="https://openfreemap.org">OpenFreeMap</a>, © OpenStreetMap contributors</li>
+            </ul>
+            <p class="note" id="generated"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site"><div class="wrap">Sunday Drive is built entirely on free, open data. Drive safely and pull over properly.</div></footer>
+  <script type="module" src="./src/sunday/main.js"></script>
+</body>
+</html>
