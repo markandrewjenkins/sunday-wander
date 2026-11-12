@@ -1,4 +1,4 @@
-// "Motor Club" skin extras for Sunday Drive: a 1950s–60s motor-club tour book (day) and a dashboard at dusk (night).
+// "Touring Club" skin extras for Sunday Wander: a 1950s–60s touring-club tour book (day) and a dashboard at dusk (night).
 // - a TOURING BULLETIN live strip under the header (region, Sunday forecast, S & A km, ice cream, current route odometer)
 // - a little touring car that drives along the header rule once on load
 // - a club roundel in the hero, dashboard gauges on the stat cards (shown at night), strip-map stubs on route cards
@@ -90,7 +90,7 @@ function build() {
   document.querySelector(".hero .wrap")?.prepend(badge);
 
   // footer flavour
-  const flav = deco(h("p", "mc-flavour", "Pacific Motor Touring Club · Keep right, pass left, and always stop for ice cream."));
+  const flav = deco(h("p", "mc-flavour", "Pacific Touring Club · Keep right, pass left, and always stop for ice cream."));
   document.querySelector("footer.site .wrap")?.append(flav);
 
   // re-decorate whatever main.js / the planner re-render
@@ -271,7 +271,7 @@ function roundel() {
   return `<svg viewBox="0 0 160 160" class="mc-badge-svg">
     <defs><path id="mc-rt" d="M80 80 m-56 0 a56 56 0 1 1 112 0"/><path id="mc-rb" d="M80 80 m-61 0 a61 61 0 1 0 122 0"/></defs>
     <circle cx="80" cy="80" r="77" class="b-out"/><circle cx="80" cy="80" r="71" class="b-ring"/><circle cx="80" cy="80" r="46" class="b-in"/>
-    <text class="b-rt"><textPath href="#mc-rt" startOffset="50%" text-anchor="middle">PACIFIC MOTOR TOURING CLUB</textPath></text>
+    <text class="b-rt"><textPath href="#mc-rt" startOffset="50%" text-anchor="middle">PACIFIC TOURING CLUB</textPath></text>
     <text class="b-rb"><textPath href="#mc-rb" startOffset="50%" text-anchor="middle">★ WEST COAST EDITION ★</textPath></text>
     <text x="80" y="70" text-anchor="middle" class="b-t1">TOUR BOOK</text>
     <text x="80" y="92" text-anchor="middle" class="b-t2">SUNDAY</text>

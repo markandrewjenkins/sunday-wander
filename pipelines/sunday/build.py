@@ -1,4 +1,4 @@
-"""Sunday Drive: score every road and path for a relaxed outing, and rate a set of classic routes.
+"""Sunday Wander: score every road and path for a relaxed outing, and rate a set of classic routes.
 
   python -m pipelines.sunday.build [region ...]
 

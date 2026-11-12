@@ -1,8 +1,8 @@
-# Sunday Drive
+# Sunday Wander
 
 Every road rated for a relaxed outing by car, bike or on foot, with a trip planner and loop builder. Region: Greater Victoria, Greater Vancouver.
 
-**Live dashboard: https://markandrewjenkins.github.io/sunday-drive/**
+**Live dashboard: https://markandrewjenkins.github.io/sunday-wander/**
 
 Built only on free, open government and citizen-science data. A Python pipeline fetches and models the data,
 and a static Vite + d3 + MapLibre page presents it. GitHub Actions refreshes everything daily and publishes it
@@ -31,7 +31,7 @@ All data is published under open licences (OGL-Canada, OGL-Vancouver, OGL-Victor
 
 ## Design
 
-The page has a Classic design and a themed alternative, **Motor Club** (touring-guide strip maps / dashboard at dusk), switched with the
+The page has a Classic design and a themed alternative, **Touring Club** (touring-club tour book / dashboard at dusk), switched with the
 button in the top bar or with `?skin=alt` / `?skin=classic` in the URL. Each has a day and a night version.
 
 ## Running locally

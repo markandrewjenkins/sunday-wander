@@ -1,5 +1,5 @@
-/* "Motor Club" design skin for this page. Every rule is scoped under :root[data-skin="alt"].
-   A 1950s–60s motor-club touring guide, Canadian West Coast edition (the fictional Pacific Motor Touring Club).
+/* "Touring Club" design skin for this page. Every rule is scoped under :root[data-skin="alt"].
+   A 1950s–60s touring-club touring guide, Canadian West Coast edition (the fictional Pacific Touring Club).
    Day = tour book: cream map paper with folded-map creases, enamel road-sign plaques, route shields, strip-map tickets.
    Night = dashboard at dusk: deep blue-black, chrome trim, amber instrument glow, gauges and odometer wheels.
    Day/night differences live in tokens wherever possible, so most rules are written once. */

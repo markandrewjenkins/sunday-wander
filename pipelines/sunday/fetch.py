@@ -1,4 +1,4 @@
-"""Download raw inputs for Sunday Drive.
+"""Download raw inputs for Sunday Wander.
 
   python -m pipelines.sunday.fetch [osm|roads|scenery|stops|landmarks|trees|all|missing] [region ...]
 

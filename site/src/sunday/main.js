@@ -59,7 +59,7 @@ async function init() {
     describe: (r, G) => describeRoute(r, G),
     ignoreClicksOn: ["stops"],
     onGraph: (G, mode) => { state.G = G; state.mode = mode; renderWeights(); rescore(); },
-    // "Motor Club" skin: announce the planned route (null when cleared)
+    // "Touring Club" skin: announce the planned route (null when cleared)
     onRoute: (r) => window.dispatchEvent(new CustomEvent("sunday:route", { detail: r ? { metres: r.metres, seconds: r.seconds, score: r.score } : null })),
   });
   document.getElementById("reset-weights").addEventListener("click", () => { state.weights[state.mode] = { ...D.weights[state.mode] }; renderWeights(); rescore(); planner.rescore(); });
@@ -310,7 +310,7 @@ function renderStats() {
     stat("S & A-tier roads", fmtKm(good), `the best 15% of the ${MODES[state.mode].label.toLowerCase()} network`),
     stat("Ice-cream stops", fmtInt.format(ice), `plus ${fmtInt.format(R.stops.filter((x) => ["cafe", "bakery"].includes(x[2])).length)} cafés and bakeries`),
     stat("Top ready-made route", best ? best.name : "—", best ? `${best.km.toFixed(0)} km · ${fmtDur(best.minutes * 60)}` : ""));
-  skinData({ D, region: state.region, mode: state.mode, good, ice, best }); // "Motor Club" skin: share already-computed figures
+  skinData({ D, region: state.region, mode: state.mode, good, ice, best }); // "Touring Club" skin: share already-computed figures
 }
 function describeRoute(r, G) {
   let water = 0, green = 0, trees = 0;
@@ -325,12 +325,12 @@ async function renderWeather() {
     const w = await (await fetch(`https://api.open-meteo.com/v1/forecast?${q}`)).json();
     const i = w.daily.time.findIndex((t) => new Date(t + "T12:00").getDay() === 0);
     const [tmax, pop, cloud, wind, sunset] = ["temperature_2m_max", "precipitation_probability_max", "cloud_cover_mean", "wind_speed_10m_max", "sunset"].map((k) => w.daily[k][i]);
-    const verdict = pop >= 60 ? "Rain likely: a café crawl, or the covered Sunday drive." : pop >= 30 ? "Mixed: go early and keep it short."
+    const verdict = pop >= 60 ? "Rain likely: a café crawl, or a short drive to somewhere cosy." : pop >= 30 ? "Mixed: go early and keep it short."
       : cloud < 40 ? (tmax >= 18 ? "Glorious: head for the water, and the ice cream." : "Crisp and clear: perfect for the coast and the views.") : "Grey but dry: a good day for the forest roads.";
     const day = new Date(w.daily.time[i] + "T12:00").toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" });
     host.replaceChildren(el("div", { class: "wx-day" }, day), el("div", { class: "wx-temp" }, `${Math.round(tmax)}°`),
       el("div", { class: "wx-line" }, `${pop}% chance of rain · ${Math.round(cloud)}% cloud · wind ${Math.round(wind)} km/h · sunset ${sunset.slice(11, 16)}`),
       el("p", { class: "wx-verdict" }, verdict));
-    skinData({ wx: { region: state.region, tmax, pop, date: w.daily.time[i] } }); // "Motor Club" skin: touring bulletin
+    skinData({ wx: { region: state.region, tmax, pop, date: w.daily.time[i] } }); // "Touring Club" skin: touring bulletin
   } catch { host.textContent = "Forecast unavailable right now."; skinData({ wx: null }); }
 }
