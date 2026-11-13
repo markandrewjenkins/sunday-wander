@@ -1,14 +1,17 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-page="sunday">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script>
-    // Apply saved theme and design skin before first paint (?skin=alt|classic overrides and is remembered)
+    // Apply saved theme and design skin before first paint. <html data-skins="alt herbarium …"> lists this page's
+    // themed designs; ?skin=<id>|classic overrides and is remembered. "alt" is shared across pages; other ids per page.
     (function () { try { var r = document.documentElement, q = new URLSearchParams(location.search).get("skin");
       var t = localStorage.getItem("odp-theme"); if (t) r.dataset.theme = t;
-      if (q) localStorage.setItem("odp-skin", q);
-      if ((q || localStorage.getItem("odp-skin")) === "alt") r.dataset.skin = "alt"; } catch (e) {} })();
+      var multi = !!r.dataset.skins, ok = (r.dataset.skins || "alt").split(" "), pk = "odp-skin:" + (r.dataset.page || location.pathname);
+      if (q) { if (multi) localStorage.setItem(pk, q); if (q === "alt" || q === "classic") localStorage.setItem("odp-skin", q); }
+      var s = q || (multi && localStorage.getItem(pk)) || localStorage.getItem("odp-skin");
+      if (ok.indexOf(s) >= 0) r.dataset.skin = s; } catch (e) {} })();
   </script>
   <title>Sunday Wander</title>
   <meta name="description" content="Where to wander on a Sunday, by car, bike or on foot, in Greater Victoria and Greater Vancouver: every road rated for views, trees, sights and ice-cream stops, with a trip planner." />
@@ -16,7 +19,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;550;600;650;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Oswald:wght@500;600;700&family=Overpass:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Overpass+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Road Atlas skin: Source Serif 4 + Source Sans 3 -->
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./src/shared/theme.css" />
   <link rel="stylesheet" href="./src/sunday/sunday.css" />
   <link rel="stylesheet" href="./src/sunday/skin.css" />
@@ -25,7 +29,7 @@
   <header class="topbar">
     <span class="title">Sunday Wander</span>
     <span class="spacer"></span>
-    <button class="skin-btn" id="skin" type="button" data-skin-name="Touring Club"></button>
+    <button class="skin-btn" id="skin" type="button" data-skin-name="Road Atlas"></button>
     <button class="icon-btn" id="theme" type="button"></button>
   </header>
 
@@ -121,12 +125,12 @@
             <p><b>The network.</b> Every road, path and trail from OpenStreetMap, split at intersections and checked for who may use it in which direction: one-way streets, bike lanes, footpaths, roads closed to cars.</p>
             <p><b>The ingredients.</b> Each stretch of road is measured against:</p>
             <ul>
-              <li><b>Water:</b> distance to the sea, lakes and rivers.</li>
+              <li><b>Water views:</b> whether you can actually see open water. Sight lines are cast in 24 directions up to 2 km over a 30 m surface model that includes buildings and trees, to the sea or any lake or river larger than 2 ha. Ponds and wetlands don't count. "Next to the water" is a separate, smaller ingredient.</li>
               <li><b>Parks &amp; forest</b> and <b>farmland</b> within about 60–100 m.</li>
               <li><b>Street trees</b> from the city tree inventories.</li>
               <li><b>Sights:</b> viewpoints, heritage places, lighthouses, landmarks with a Wikipedia article.</li>
               <li><b>Stops:</b> ice cream, cafés, bakeries, farm stands, picnic sites, beaches, washrooms.</li>
-              <li><b>The road itself:</b> posted speed and lanes (slower and two lanes is best), traffic signals per kilometre, gentle curves.</li>
+              <li><b>The road itself:</b> posted speed and lanes (slower and two lanes is best), traffic signals per kilometre, gentle curves. Winding local roads through forest count as narrow, because OpenStreetMap rarely records road width.</li>
               <li><b>Bike lanes and paths</b>, or <b>quiet streets</b> for walking.</li>
               <li><b>Industrial land</b> counts against.</li>
             </ul>
@@ -139,6 +143,7 @@
               <li>There is no ground truth for "a nice drive", so the scores are a transparent recipe, not a trained model. The weights are yours to change.</li>
               <li>OpenStreetMap is only as complete as local mappers have made it. Missing speed limits fall back to the BC default of 50 km/h, and lane counts are often guessed from the road type.</li>
               <li>Traffic isn't included: a lovely road at 3 pm on a sunny Sunday may be a queue.</li>
+              <li>Water views come from a 30 m satellite surface model, so a single house or hedge between you and the sea won't register, and views open up or close with the seasons.</li>
               <li>Street trees come from city inventories, which cover Victoria, Esquimalt and Vancouver only, so tree-lined roads elsewhere are under-rated.</li>
               <li>Opening hours aren't checked: phone ahead before driving out for ice cream.</li>
             </ul>
@@ -146,6 +151,7 @@
             <ul class="sources">
               <li>Roads, paths, parks, water, stops: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL), via the Overpass API</li>
               <li>Landmarks and heritage designations: <a href="https://www.wikidata.org/">Wikidata</a> (CC0)</li>
+              <li>Surface heights for water views: <a href="https://registry.opendata.aws/copernicus-dem/">Copernicus DEM GLO-30</a> © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA</li>
               <li>Street trees: City of Vancouver, City of Victoria and Township of Esquimalt open data</li>
               <li>Weather: <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0)</li>
               <li>Basemap © <a href="https://openfreemap.org">OpenFreeMap</a>, © OpenStreetMap contributors</li>

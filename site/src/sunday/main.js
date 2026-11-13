@@ -4,7 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { initTheme, initSkin, cssVar, tooltip, el, tipRow, loadJSON, fmtInt } from "../shared/ui.js";
 import { createPlanner } from "../shared/planner.js";
 import { edgeCoords, fmtKm, fmtDur, MODES } from "../shared/route.js";
-import { skinData } from "./skin.js";
+import "./skin.js"; // Road Atlas design skin: basemap tint (the rest of the skin is CSS)
 
 const DATA = "./data/sunday/";
 const MAP_STYLE = { light: "https://tiles.openfreemap.org/styles/positron", dark: "https://tiles.openfreemap.org/styles/dark" };
@@ -12,7 +12,7 @@ const TIERS = ["S", "A", "B", "C", "D"];
 const TIER_SHARE = [0.05, 0.10, 0.15, 0.20, 0.50];         // share of road length in each tier
 const TIER_BLURB = { S: "Worth the trip", A: "Go out of your way", B: "Pleasant", C: "Fine to pass through", D: "Just getting there" };
 const FEAT = {
-  water: ["Water views", "🌊"], green: ["Parks & forest", "🌲"], farm: ["Farmland", "🌾"], trees: ["Street trees", "🌳"],
+  water: ["Water views", "🌊"], shore: ["Next to the water", "🏖️"], green: ["Parks & forest", "🌲"], farm: ["Farmland", "🌾"], trees: ["Street trees", "🌳"],
   sights: ["Sights & heritage", "🏛️"], stops: ["Places to stop", "🍦"], road: ["Slow & wide road", "🛣️"], flow: ["Few traffic lights", "🚦"],
   curve: ["Gentle curves", "〰️"], infra: ["Bike lanes & paths", "🚲"], quiet: ["Quiet for walking", "🤫"], busy: ["Industrial land (avoid)", "🏭"],
 };
@@ -59,8 +59,6 @@ async function init() {
     describe: (r, G) => describeRoute(r, G),
     ignoreClicksOn: ["stops"],
     onGraph: (G, mode) => { state.G = G; state.mode = mode; renderWeights(); rescore(); },
-    // "Touring Club" skin: announce the planned route (null when cleared)
-    onRoute: (r) => window.dispatchEvent(new CustomEvent("sunday:route", { detail: r ? { metres: r.metres, seconds: r.seconds, score: r.score } : null })),
   });
   document.getElementById("reset-weights").addEventListener("click", () => { state.weights[state.mode] = { ...D.weights[state.mode] }; renderWeights(); rescore(); planner.rescore(); });
   await setRegion(state.region, { initial: true });
@@ -294,7 +292,7 @@ function renderRoutes() {
         el("div", { class: "rt-top" }, el("span", { class: `pl-tier tier-${r.tier}` }, `${r.tier} tier`), el("span", { class: "rt-score" }, `score ${Math.round(r.score * 100)}`)),
         el("h4", {}, r.name), el("p", {}, r.blurb),
         el("div", { class: "rt-stats" }, el("span", {}, `${r.km.toFixed(1)} km`), el("span", {}, fmtDur(r.minutes * 60)),
-          r.water_km >= 0.5 ? el("span", {}, `🌊 ${r.water_km.toFixed(1)} km by the water`) : null,
+          r.water_km >= 0.5 ? el("span", {}, `🌊 ${r.water_km.toFixed(1)} km with water views`) : null,
           r.green_km >= 0.5 ? el("span", {}, `🌲 ${r.green_km.toFixed(1)} km of park & forest`) : null),
         el("button", { type: "button", class: "pl-btn", onclick: () => { planner.loadPreset(r); document.getElementById("map").scrollIntoView({ behavior: "smooth", block: "center" }); } }, "Show on the map →"))))];
   }));
@@ -310,12 +308,11 @@ function renderStats() {
     stat("S & A-tier roads", fmtKm(good), `the best 15% of the ${MODES[state.mode].label.toLowerCase()} network`),
     stat("Ice-cream stops", fmtInt.format(ice), `plus ${fmtInt.format(R.stops.filter((x) => ["cafe", "bakery"].includes(x[2])).length)} cafés and bakeries`),
     stat("Top ready-made route", best ? best.name : "—", best ? `${best.km.toFixed(0)} km · ${fmtDur(best.minutes * 60)}` : ""));
-  skinData({ D, region: state.region, mode: state.mode, good, ice, best }); // "Touring Club" skin: share already-computed figures
 }
 function describeRoute(r, G) {
   let water = 0, green = 0, trees = 0;
-  for (const [e] of r.steps) { if (G.feat.water[e] >= 60) water += G.len[e]; if (G.feat.green[e] >= 50) green += G.len[e]; if (G.feat.trees[e] >= 50) trees += G.len[e]; }
-  return [["🌊 By the water", fmtKm(water)], ["🌲 Parks & forest", fmtKm(green)], ["🌳 Tree-lined", fmtKm(trees)]];
+  for (const [e] of r.steps) { if (G.feat.water[e] >= 50) water += G.len[e]; if (G.feat.green[e] >= 50) green += G.len[e]; if (G.feat.trees[e] >= 50) trees += G.len[e]; }
+  return [["🌊 Water views", fmtKm(water)], ["🌲 Parks & forest", fmtKm(green)], ["🌳 Tree-lined", fmtKm(trees)]];
 }
 async function renderWeather() {
   const R = D.regions[state.region], host = document.querySelector("#weather .wx-body");
@@ -331,6 +328,5 @@ async function renderWeather() {
     host.replaceChildren(el("div", { class: "wx-day" }, day), el("div", { class: "wx-temp" }, `${Math.round(tmax)}°`),
       el("div", { class: "wx-line" }, `${pop}% chance of rain · ${Math.round(cloud)}% cloud · wind ${Math.round(wind)} km/h · sunset ${sunset.slice(11, 16)}`),
       el("p", { class: "wx-verdict" }, verdict));
-    skinData({ wx: { region: state.region, tmax, pop, date: w.daily.time[i] } }); // "Touring Club" skin: touring bulletin
-  } catch { host.textContent = "Forecast unavailable right now."; skinData({ wx: null }); }
+  } catch { host.textContent = "Forecast unavailable right now."; }
 }

@@ -12,12 +12,12 @@ to GitHub Pages.
 
 - **Network:** Every road and path from OpenStreetMap, read from BBBike's weekly city extracts (Overpass is the fallback). Ways are split at intersections, and access and one-way rules are worked out separately for cars, bikes and walking (`pipelines/common/roadgraph.py`).
 - **Ingredients per road segment (0–100):**
-  - water within 250 m (sea, lakes, rivers);
+  - water views: line of sight over the Copernicus GLO-30 surface model (buildings and trees block it) to the sea, or to lakes and rivers over 2 ha, in 24 directions up to 2 km; "next to the water" is a separate, smaller ingredient, and ponds and wetlands don't count;
   - parks and forest within ~60 m, and farmland within ~100 m;
   - street trees from the city inventories;
   - sights: viewpoints, heritage places, lighthouses, and Wikidata landmarks with a heritage designation or a Wikipedia article;
   - stops: ice cream, cafés, bakeries, farm stands, picnic sites, beaches, washrooms;
-  - "slow and wide": posted speed and lanes, where 50 km/h on two lanes is best;
+  - "slow and wide": posted speed and lanes, where 50 km/h on two lanes is best; winding local roads through forest count as narrow;
   - traffic signals and stop signs per km, and gentle curves (sinuosity);
   - cycling infrastructure for bikes, and quiet streets for walking;
   - industrial land counts against.
@@ -31,7 +31,7 @@ All data is published under open licences (OGL-Canada, OGL-Vancouver, OGL-Victor
 
 ## Design
 
-The page has a Classic design and a themed alternative, **Touring Club** (touring-club tour book / dashboard at dusk), switched with the
+The page has a Classic design and a themed alternative, **Road Atlas** (printed nature atlas: paper land, green parks, blue sea; quiet serif type and hairline rules), switched with the
 button in the top bar or with `?skin=alt` / `?skin=classic` in the URL. Each has a day and a night version.
 
 ## Running locally

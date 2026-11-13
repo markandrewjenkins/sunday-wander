@@ -3,7 +3,9 @@
   python -m pipelines.sunday.build [region ...]
 
 Per road segment (edge) the build measures, on a 0–100 scale:
-  water    how close the road runs to the sea, a lake or a river (100 within 20 m, 0 beyond 250 m)
+  water    actual water views: line of sight over the Copernicus 30 m surface model (buildings and trees block it) to
+           the sea or a lake or river larger than 2 ha, in 24 directions up to 2 km
+  shore    next to the water (100 within 20 m, 0 beyond 250 m), ponds and wetlands excluded
   green    share of parks, forest and nature reserves within ~60 m
   farm     share of farmland, orchards and meadows within ~100 m
   trees    street trees within 20 m (city inventories), per 100 m of road
@@ -31,17 +33,19 @@ from PIL import Image, ImageDraw
 from scipy import ndimage
 from sklearn.neighbors import KDTree
 
+from pipelines.common import dem
 from pipelines.common import roadgraph as rg
 
 from .config import OUT, RAW, REGIONS
 from .routes import ROUTES
 
 RES = 15.0   # raster cell size, m
-FEATURES = ["water", "green", "farm", "trees", "sights", "stops", "road", "flow", "curve", "infra", "quiet", "busy"]
+DEM_DIR = RAW.parents[1] / "dem"     # Copernicus GLO-30 tiles, shared
+FEATURES = ["water", "shore", "green", "farm", "trees", "sights", "stops", "road", "flow", "curve", "infra", "quiet", "busy"]
 DEFAULT_WEIGHTS = {
     "car": {"water": 3, "green": 2, "farm": 1.5, "trees": 1.5, "sights": 1.5, "stops": 1, "road": 2, "flow": 1, "curve": 1, "busy": -2},
-    "bike": {"water": 2.5, "green": 2, "farm": 1, "trees": 1.5, "sights": 1, "stops": 1, "infra": 3, "flow": 0.5, "busy": -1.5},
-    "foot": {"water": 2.5, "green": 2.5, "trees": 2, "sights": 2, "stops": 1.5, "quiet": 2.5, "busy": -1.5},
+    "bike": {"water": 2.5, "shore": 0.5, "green": 2, "farm": 1, "trees": 1.5, "sights": 1, "stops": 1, "infra": 3, "flow": 0.5, "busy": -1.5},
+    "foot": {"water": 2.5, "shore": 1, "green": 2.5, "trees": 2, "sights": 2, "stops": 1.5, "quiet": 2.5, "busy": -1.5},
 }
 STOP_KINDS = {  # kind: (label, icon, weight as a stop, weight as a sight)
     "ice_cream": ("Ice cream", "🍦", 2.0, 0), "cafe": ("Café", "☕", 1.0, 0), "bakery": ("Bakery", "🥐", 1.0, 0),
@@ -107,12 +111,18 @@ def _rings(el):
 
 
 def scenery_rasters(R: Raster, elements):
+    big_water = []
     layers = {k: R.blank() for k in ("water", "green", "farm", "busy")}
     draw = {k: ImageDraw.Draw(v) for k, v in layers.items()}
     for el in elements:
         t = el.get("tags", {})
         nat, lu, lei, ww = t.get("natural"), t.get("landuse"), t.get("leisure"), t.get("waterway")
-        k = ("water" if nat in ("water", "coastline", "beach", "wetland") or ww in ("river", "riverbank") else
+        small = t.get("water") in ("pond", "basin", "wastewater", "reflecting_pool", "stormwater", "fountain")
+        if (nat == "water" and not small) or ww == "riverbank":
+            for ring in _rings(el):
+                if len(ring) > 3:
+                    big_water.append(ring)
+        k = ("water" if (nat in ("water", "coastline", "beach") and not small) or ww in ("river", "riverbank") else
              "green" if nat in ("wood", "scrub", "heath", "grassland", "cliff") or lu in ("forest", "cemetery", "recreation_ground", "allotments")
              or lei in ("park", "nature_reserve", "garden", "golf_course") or t.get("boundary") in ("protected_area", "national_park") else
              "farm" if lu in ("farmland", "orchard", "vineyard", "meadow") else
@@ -132,7 +142,27 @@ def scenery_rasters(R: Raster, elements):
     arr = {k: np.asarray(v, dtype=np.uint8) for k, v in layers.items()}
     dist_water = ndimage.distance_transform_edt(arr["water"] == 0) * RES
     frac = lambda a, m: ndimage.uniform_filter(a.astype(np.float32), size=max(3, int(2 * m / RES) | 1))
-    return {"water_d": dist_water, "green": frac(arr["green"], 60), "farm": frac(arr["farm"], 100), "busy": frac(arr["busy"], 80)}
+    return {"water_d": dist_water, "green": frac(arr["green"], 60), "farm": frac(arr["farm"], 100), "busy": frac(arr["busy"], 80),
+            "big_water": big_water}
+
+
+def view_mask(G, big_water):
+    """Surface heights and an open-water mask on the Copernicus 30 m grid: the sea (flattened to exactly 0 m in
+    the model) plus lakes and rivers from OpenStreetMap larger than 2 ha. Ponds and wetlands don't count."""
+    z, (lon0, lat0), (dlon, dlat) = dem.mosaic(G["bbox"], DEM_DIR, margin=0.03)
+    lab, n = ndimage.label(z == 0.0)
+    sizes = np.bincount(lab.ravel())
+    sea = (lab > 0) & (sizes[lab] >= 20000)
+    img = Image.new("L", (z.shape[1], z.shape[0]), 0)
+    dr = ImageDraw.Draw(img)
+    kx = 111320 * math.cos(math.radians((G["bbox"][0] + G["bbox"][2]) / 2))
+    for ring in big_water:
+        xs = [(p[0] - lon0) / dlon for p in ring]; ys = [(lat0 - p[1]) / dlat for p in ring]
+        area = 0.5 * abs(sum(xs[i] * ys[i + 1] - xs[i + 1] * ys[i] for i in range(len(xs) - 1))) * dlon * kx * dlat * 110540
+        if area >= 20000:
+            dr.polygon(list(zip(xs, ys)), fill=1)
+    water = sea | (np.asarray(img, dtype=np.uint8) > 0)
+    return z, water, (lon0, lat0), (dlon, dlat), (dlon * kx, dlat * 110540)
 
 
 # ============================================================================= points
@@ -191,7 +221,18 @@ def features(key, G):
     f = {}
     wd = R.at(ras["water_d"], sx, sy)
     near = np.clip(1 - (wd - 20) / 230, 0, 1)
-    f["water"] = 100 * (0.6 * agg(near) + 0.4 * agg(near, "max"))
+    f["shore"] = 100 * (0.6 * agg(near) + 0.4 * agg(near, "max"))
+    print("  water views (line of sight over the 30 m surface model)…", flush=True)
+    z, water, (lon0, lat0), (dlon, dlat), cell_m = view_mask(G, ras["big_water"])
+    vx, vy, ve = rg.sample_points(G, 40.0)
+    lon0g, lat0g, kxg, kyg = G["proj"]
+    vlon, vlat = vx / kxg + lon0g, vy / kyg + lat0g
+    view = dem.water_view(z, water, (vlon - lon0) / dlon, (lat0 - vlat) / dlat, cell_m)
+    vs = np.clip(view / 0.35, 0, 1)                 # a third of all directions with plenty of water in sight = full marks
+    vser = pd.Series(vs).groupby(ve)
+    f["water"] = 100 * (0.5 * vser.mean() + 0.5 * vser.max()).reindex(range(E)).fillna(0).to_numpy()
+    f["water"][G["tunnel"]] = 0                     # the surface model can't tell a tunnel from the road over it
+    f["shore"][G["tunnel"]] = 0
     f["green"] = 100 * np.clip(agg(R.at(ras["green"], sx, sy)) / 0.6, 0, 1)
     f["farm"] = 100 * np.clip(agg(R.at(ras["farm"], sx, sy)) / 0.5, 0, 1)
     f["busy"] = 100 * np.clip(agg(R.at(ras["busy"], sx, sy)) / 0.5, 0, 1)
@@ -215,15 +256,20 @@ def features(key, G):
     cls = np.array(rg.CLASSES)[G["cls"]]
     sp, lanes = G["speed"].astype(float), G["lanes"].astype(float)
     slow = np.interp(sp, [30, 50, 60, 70, 80, 90], [0.9, 1.0, 0.65, 0.4, 0.2, 0.0])
-    wide = np.select([lanes <= 1, lanes == 2, lanes == 3, lanes == 4], [0.7, 1.0, 0.6, 0.25], 0.05)
+    wide = np.select([lanes <= 1, lanes == 2, lanes == 3, lanes == 4], [0.6, 1.0, 0.6, 0.25], 0.05)
     kind = np.select([np.isin(cls, ["motorway", "link"]), cls == "trunk", np.isin(cls, ["residential", "living_street", "service"]),
                       np.isin(cls, ["secondary", "tertiary", "unclassified"])], [0.0, 0.2, 0.75, 1.0], 0.8)
-    f["road"] = 100 * slow * wide * kind
     sig = rg.signals_per_edge(G, signals)
     f["flow"] = 100 * np.exp(-sig / (L / 1000) / 3)
     chord = np.array([math.hypot((g[-1, 0] - g[0, 0]) * G["proj"][2], (g[-1, 1] - g[0, 1]) * G["proj"][3]) for g in G["geom"]])
     sinu = np.where(G["length"] > 100, G["length"] / np.maximum(chord, 1), 1)
     f["curve"] = 100 * np.clip((sinu - 1.02) / 0.15, 0, 1)
+    # OpenStreetMap rarely records road width. Winding local roads through forest (the Highlands, Metchosin) are
+    # usually narrow with no shoulder even when tagged two-lane, so they lose some of the "wide" credit.
+    narrow = np.isin(cls, ["residential", "unclassified", "tertiary", "service"]) & (f["curve"] >= 50) & (f["green"] >= 50)
+    wide = np.where(narrow, wide * 0.6, wide)
+    f["road"] = 100 * slow * wide * kind
+    f["narrow"] = 100 * narrow.astype(float)
     infra = np.select([G["bikeinfra"] | np.isin(cls, ["cycleway", "path"]), np.isin(cls, ["residential", "living_street", "service", "track"]),
                        cls == "unclassified", cls == "tertiary"], [1.0, 0.65, 0.5, 0.3], 0.05)
     f["infra"] = 100 * infra * np.where(G["unpaved"], 0.8, 1)
@@ -265,7 +311,7 @@ def rate_routes(key, G, f, S, infos):
         idx = np.array([e for e, _ in path])
         m = G["length"][idx].sum()
         sc = float((s[idx] * G["length"][idx]).sum() / m)
-        water_km = float(G["length"][idx][f["water"][idx] >= 60].sum() / 1000)
+        water_km = float(G["length"][idx][f["water"][idx] >= 50].sum() / 1000)
         green_km = float(G["length"][idx][f["green"][idx] >= 50].sum() / 1000)
         out.append({**{k: r[k] for k in ("id", "name", "mode", "blurb", "waypoints")}, "region": key, "km": float(m / 1000),
                     "minutes": float(secs[mode][idx].sum() / 60), "score": sc, "water_km": water_km, "green_km": green_km,
